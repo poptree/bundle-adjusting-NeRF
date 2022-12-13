@@ -124,3 +124,52 @@ class MPNN_3Conv(torch.nn.Module):
 
         return self.node_out_mlp(node_3), self.edge_out_mlp(edge_3)
     
+# class MPNN_3Conv_node(torch.nn.Module):
+#     def __init__(self, node_channels=32, edge_channels=32, graph_channels=32, out_channels=32, activate="leakyrelu") -> None:
+#         super().__init__()
+
+#         self.node_channels = node_channels
+#         self.edge_channels = edge_channels
+#         self.graph_channels = graph_channels
+#         self.out_channels = out_channels
+
+        
+#         self.conv1 = BaseEdgeConv(self.node_channels, self.edge_channels, self.graph_channels)
+#         self.conv2 = BaseEdgeConv(self.graph_channels, self.graph_channels + self.edge_channels, self.graph_channels)
+#         self.conv3 = BaseEdgeConv(self.graph_channels, self.graph_channels * 2 + self.edge_channels, self.graph_channels)
+
+#         # self.ac = torch.nn.LeakyReLU(negative_slope=0.2)
+#         self.ac = lambda x: x
+#         if activate == "relu":
+#             self.ac = nn.ReLU()
+#         elif activate == "leakyrelu":
+#             self.ac = nn.LeakyReLU()
+
+
+#         self.edge_out_mlp = Seq(Linear(self.graph_channels, graph_channels),
+#                        torch.nn.LeakyReLU(negative_slope=0.2),
+#                        Linear(graph_channels, graph_channels),
+#                        torch.nn.LeakyReLU(negative_slope=0.2),
+#                        Linear(graph_channels, self.out_channels))
+#         self.node_out_mlp = Seq(Linear(self.graph_channels, graph_channels),
+#                        torch.nn.LeakyReLU(negative_slope=0.2),
+#                        Linear(graph_channels, graph_channels),
+#                        torch.nn.LeakyReLU(negative_slope=0.2),
+#                        Linear(graph_channels, self.out_channels))
+
+#     def forward(self, node_attr, edge_attr, edge_index, node_shape=None):
+#         # node_attr = torch.zeros_like(node_attr)
+#         node_1, edge_1 = self.conv1(node_attr, edge_index, edge_attr)
+#         node_1 = self.ac(node_1)
+#         edge_1 = self.ac(edge_1)
+
+#         node_2, edge_2 = self.conv2(node_1, edge_index, torch.cat([edge_1, edge_attr], dim=-1))
+#         node_2 = self.ac(node_2)
+#         edge_2 = self.ac(edge_2)
+
+#         node_3, edge_3 = self.conv3(node_2, edge_index, torch.cat([edge_2, edge_1, edge_attr], dim=-1))
+#         node_3 = self.ac(node_3)
+#         edge_3 = self.ac(edge_3)
+
+#         return self.node_out_mlp(node_3), self.edge_out_mlp(edge_3)
+    
