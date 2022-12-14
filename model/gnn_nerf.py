@@ -73,7 +73,7 @@ class Model(nerf.Model):
         super.validate(opt, ep=ep)
         
     @torch.no_grad()
-    def log_scalars(self, opt, var, loss, metric=None, step=0, split="train")
+    def log_scalars(self, opt, var, loss, metric=None, step=0, split="train"):
         super().log_scalars(opt,var,loss,metric=metric,step=step,split=split)
         if split=="train":
             # log learning rate
