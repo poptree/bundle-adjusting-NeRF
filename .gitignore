@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# USER DEFINE gitignore
+.vscode/
+__MACOSX/
+DATA/
+DATA
+data/
+data
+output
+output/

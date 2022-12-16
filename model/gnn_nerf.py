@@ -25,7 +25,7 @@ class Model(nerf.Model):
         super().build_networks(opt)
     
         if opt.camera.noise:
-            se3_noise = torch.randn(len(self.train_data), 6, device=opt.device)*opt.camera.noise
+            se3_noise = torch.randn(len(self.train_data), 6, device=opt.device)*opt.camera.noiseta
         
         self.node_feat_num = 32
         self.edge_feat_num = 1
