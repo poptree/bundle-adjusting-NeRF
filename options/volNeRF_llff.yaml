@@ -2,9 +2,15 @@ _parent_: options/base.yaml
 
 arch:
     use_tcnn: true
-    network_config:
+    feature_network_config:
         otype: FullyFusedMLP
         activation: ReLU
         output_activation: None
-        n_neurons: 256
-        n_hidden_layers: 8
+        n_neurons: 64 # FullyFusedMLP only support 128
+        n_hidden_layers: 2
+    rgb_network_config:
+        otype: FullyFusedMLP
+        activation: ReLU
+        output_activation: None
+        n_neurons: 64 # FullyFusedMLP only support 128
+        n_hidden_layers: 1

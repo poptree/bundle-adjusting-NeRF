@@ -251,6 +251,7 @@ class NeRF(nerf.NeRF):
     def positional_encoding(self,opt,input,L): # [B,...,N]
         input_enc = super().positional_encoding(opt,input,L=L) # [B,...,2NL]
         # coarse-to-fine: smoothly mask positional encoding for BARF
+        # TODO: need to rewrite this part to be more general
         if opt.barf_c2f is not None:
             # set weights for different frequency bands
             start,end = opt.barf_c2f

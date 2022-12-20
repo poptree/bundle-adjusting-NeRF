@@ -313,9 +313,24 @@ class NeRF(torch.nn.Module):
         self.define_network(opt)
 
     def define_network(self,opt):
-        input_3D_dim = 3+6*opt.arch.posenc.L_3D if opt.arch.posenc else 3
+        # prepare position encodeing
+        # input_3D_dim = 3+6*opt.arch.posenc.L_3D if opt.arch.posenc else 3
+        # input_3D_dim = 3+6*opt.arch.posenc.L_3D if opt.arch.posenc else 3
+        if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+            self.position_enc_func = tcnn.Encoding(n_input_dims=3, encoding_config=opt.arch.posenc)
+            input_3D_dim = self.position_enc_func.n_output_dims
+        else:
+            input_3D_dim = 3+6*opt.arch.posenc.L_3D if opt.arch.posenc else 3
+       
+        
         if opt.nerf.view_dep:
-            input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
+            # input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
+            if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+                self.view_enc_func = tcnn.Encoding(n_input_dims=3, encoding_config=opt.arch.viewenc))
+                input_view_dim = self.view_enc_func.n_output_dims
+            else:
+                input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
+                
         # point-wise feature and output density
         if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
         # Using TCNN"""
@@ -432,10 +447,29 @@ class NeRF(torch.nn.Module):
         return rgb,depth,opacity,prob # [B,HW,K]
 
     def positional_encoding(self,opt,input,L): # [B,...,N]
-        shape = input.shape
-        freq = 2**torch.arange(L,dtype=torch.float32,device=opt.device)*np.pi # [L]
-        spectrum = input[...,None]*freq # [B,...,N,L]
-        sin,cos = spectrum.sin(),spectrum.cos() # [B,...,N,L]
-        input_enc = torch.stack([sin,cos],dim=-2) # [B,...,N,2,L]
-        input_enc = input_enc.view(*shape[:-1],-1) # [B,...,2NL]
+
+        
+        if "use_tcnn" in opt.arch.posenc and opt.arch.posenc.use_tcnn:
+            input_enc = self.positional_encoding_tcnn(input)
+        else:
+            shape = input.shape
+            freq = 2**torch.arange(L,dtype=torch.float32,device=opt.device)*np.pi # [L]
+            spectrum = input[...,None]*freq # [B,...,N,L]
+            sin,cos = spectrum.sin(),spectrum.cos() # [B,...,N,L]
+            input_enc = torch.stack([sin,cos],dim=-2) # [B,...,N,2,L]
+            input_enc = input_enc.view(*shape[:-1],-1) # [B,...,2NL]
         return input_enc
+        
+    def viewdir_encoding(self,opt,input,L): # [B,...,N]
+
+        if "use_tcnn" in opt.arch.viewenc and opt.arch.viewenc.use_tcnn:
+            input_enc = self.view_enc_func(input)
+        else:
+            shape = input.shape
+            freq = 2**torch.arange(L,dtype=torch.float32,device=opt.device)*np.pi # [L]
+            spectrum = input[...,None]*freq # [B,...,N,L]
+            sin,cos = spectrum.sin(),spectrum.cos() # [B,...,N,L]
+            input_enc = torch.stack([sin,cos],dim=-2) # [B,...,N,2,L]
+            input_enc = input_enc.view(*shape[:-1],-1) # [B,...,2NL]
+        return input_enc
+        

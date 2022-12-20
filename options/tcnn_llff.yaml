@@ -15,8 +15,15 @@ arch:
         n_neurons: 64 # FullyFusedMLP only support 128
         n_hidden_layers: 1
     posenc:
-        L_3D: 10
-        L_view: 4
+        use_tcnn: true
+        otype: Frequency
+        n_frequencies: 12
+    viewenc:
+        use_tcnn: true
+        otype: Frequency
+        n_frequencies: 12
+
+
     density_activ: sigmoid
     tf_init: False
 
