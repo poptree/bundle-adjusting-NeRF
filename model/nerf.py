@@ -306,15 +306,6 @@ class Graph(base.Graph):
         return depth_samples[...,None] # [B,HW,Nf,1]
 
 
-class VolNeRF(torch.nn.Module):
-    
-    def __init__(self, opt) -> None:
-        super().__init__()
-        self.define_network(opt)
-    
-    def define_network(self, opt):
-        input_3D_dim = 3 
-
 class NeRF(torch.nn.Module):
 
     def __init__(self,opt):
