@@ -326,7 +326,7 @@ class NeRF(torch.nn.Module):
         if opt.nerf.view_dep:
             # input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
             if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
-                self.view_enc_func = tcnn.Encoding(n_input_dims=3, encoding_config=opt.arch.viewenc))
+                self.view_enc_func = tcnn.Encoding(n_input_dims=3, encoding_config=opt.arch.viewenc)
                 input_view_dim = self.view_enc_func.n_output_dims
             else:
                 input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
