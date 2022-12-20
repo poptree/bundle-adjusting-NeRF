@@ -15,6 +15,8 @@ from util import log,debug
 from . import base
 import camera
 
+import tinycudann as tcnn
+
 # ============================ main engine for training and evaluation ============================
 
 class Model(base.Model):
@@ -303,6 +305,16 @@ class Graph(base.Graph):
         depth_samples = depth_low+t*(depth_high-depth_low) # [B,HW,Nf]
         return depth_samples[...,None] # [B,HW,Nf,1]
 
+
+class VolNeRF(torch.nn.Module):
+    
+    def __init__(self, opt) -> None:
+        super().__init__()
+        self.define_network(opt)
+    
+    def define_network(self, opt):
+        input_3D_dim = 3 
+
 class NeRF(torch.nn.Module):
 
     def __init__(self,opt):
@@ -313,27 +325,39 @@ class NeRF(torch.nn.Module):
         input_3D_dim = 3+6*opt.arch.posenc.L_3D if opt.arch.posenc else 3
         if opt.nerf.view_dep:
             input_view_dim = 3+6*opt.arch.posenc.L_view if opt.arch.posenc else 3
-        # point-wise feature
-        self.mlp_feat = torch.nn.ModuleList()
-        L = util.get_layer_dims(opt.arch.layers_feat)
-        for li,(k_in,k_out) in enumerate(L):
-            if li==0: k_in = input_3D_dim
-            if li in opt.arch.skip: k_in += input_3D_dim
-            if li==len(L)-1: k_out += 1
-            linear = torch.nn.Linear(k_in,k_out)
-            if opt.arch.tf_init:
-                self.tensorflow_init_weights(opt,linear,out="first" if li==len(L)-1 else None)
-            self.mlp_feat.append(linear)
+        # point-wise feature and output density
+        if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+        # Using TCNN"""
+            self.mlp_feat = tcnn.Network(n_input_dims=input_3D_dim,
+                                         n_output_dims=opt.arch.feature_network_config.n_neurons+1,
+                                         network_config=opt.arch.feature_network_config)
+        elif "use_tcnn" in opt.arch and not opt.arch.use_tcnn:
+        # Using normal pytorch
+            self.mlp_feat = torch.nn.ModuleList()
+            L = util.get_layer_dims(opt.arch.layers_feat)
+            for li,(k_in,k_out) in enumerate(L):
+                if li==0: k_in = input_3D_dim
+                if li in opt.arch.skip: k_in += input_3D_dim
+                if li==len(L)-1: k_out += 1
+                linear = torch.nn.Linear(k_in,k_out)
+                if opt.arch.tf_init:
+                    self.tensorflow_init_weights(opt,linear,out="first" if li==len(L)-1 else None)
+                self.mlp_feat.append(linear)
         # RGB prediction
-        self.mlp_rgb = torch.nn.ModuleList()
-        L = util.get_layer_dims(opt.arch.layers_rgb)
-        feat_dim = opt.arch.layers_feat[-1]
-        for li,(k_in,k_out) in enumerate(L):
-            if li==0: k_in = feat_dim+(input_view_dim if opt.nerf.view_dep else 0)
-            linear = torch.nn.Linear(k_in,k_out)
-            if opt.arch.tf_init:
-                self.tensorflow_init_weights(opt,linear,out="all" if li==len(L)-1 else None)
-            self.mlp_rgb.append(linear)
+        if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+            self.mlp_rgb = tcnn.Network(n_input_dims=opt.arch.feature_network_config.n_neurons,
+                                        n_output_dims=3,
+                                        network_config=opt.arch.rgb_network_config)
+        elif "use_tcnn" in opt.arch and not opt.arch.use_tcnn:
+            self.mlp_rgb = torch.nn.ModuleList()
+            L = util.get_layer_dims(opt.arch.layers_rgb)
+            feat_dim = opt.arch.layers_feat[-1]
+            for li,(k_in,k_out) in enumerate(L):
+                if li==0: k_in = feat_dim+(input_view_dim if opt.nerf.view_dep else 0)
+                linear = torch.nn.Linear(k_in,k_out)
+                if opt.arch.tf_init:
+                    self.tensorflow_init_weights(opt,linear,out="all" if li==len(L)-1 else None)
+                self.mlp_rgb.append(linear)
 
     def tensorflow_init_weights(self,opt,linear,out=None):
         # use Xavier init instead of Kaiming init
