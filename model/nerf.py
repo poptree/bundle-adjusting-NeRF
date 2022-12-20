@@ -392,10 +392,15 @@ class NeRF(torch.nn.Module):
                 ray_enc = torch.cat([ray_unit,ray_enc],dim=-1) # [B,...,6L+3]
             else: ray_enc = ray_unit
             feat = torch.cat([feat,ray_enc],dim=-1)
-        for li,layer in enumerate(self.mlp_rgb):
-            feat = layer(feat)
-            if li!=len(self.mlp_rgb)-1:
-                feat = torch_F.relu(feat)
+        
+        if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+            feat = self.mlp_rgb(feat)
+        elif "use_tcnn" not in opt.arch or not opt.arch.use_tcnn:
+            
+            for li,layer in enumerate(self.mlp_rgb):
+                feat = layer(feat)
+                if li!=len(self.mlp_rgb)-1:
+                    feat = torch_F.relu(feat)
         rgb = feat.sigmoid_() # [B,...,3]
         return rgb,density
 
