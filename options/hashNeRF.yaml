@@ -1,0 +1,10 @@
+_parent_: options/base.yaml
+
+arch:
+    use_tcnn: true
+    network_config:
+        otype: FullyFusedMLP
+        activation: ReLU
+        output_activation: None
+        n_neurons: 256
+        n_hidden_layers: 8

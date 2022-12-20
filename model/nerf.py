@@ -322,7 +322,7 @@ class NeRF(torch.nn.Module):
             self.mlp_feat = tcnn.Network(n_input_dims=input_3D_dim,
                                          n_output_dims=opt.arch.feature_network_config.n_neurons+1,
                                          network_config=opt.arch.feature_network_config)
-        elif "use_tcnn" in opt.arch and not opt.arch.use_tcnn:
+        elif "use_tcnn" not in opt.arch or not opt.arch.use_tcnn:
         # Using normal pytorch
             self.mlp_feat = torch.nn.ModuleList()
             L = util.get_layer_dims(opt.arch.layers_feat)
@@ -339,7 +339,7 @@ class NeRF(torch.nn.Module):
             self.mlp_rgb = tcnn.Network(n_input_dims=opt.arch.feature_network_config.n_neurons,
                                         n_output_dims=3,
                                         network_config=opt.arch.rgb_network_config)
-        elif "use_tcnn" in opt.arch and not opt.arch.use_tcnn:
+        elif "use_tcnn" not in opt.arch or not opt.arch.use_tcnn:
             self.mlp_rgb = torch.nn.ModuleList()
             L = util.get_layer_dims(opt.arch.layers_rgb)
             feat_dim = opt.arch.layers_feat[-1]
@@ -369,17 +369,21 @@ class NeRF(torch.nn.Module):
         else: points_enc = points_3D
         feat = points_enc
         # extract coordinate-based features
-        for li,layer in enumerate(self.mlp_feat):
-            if li in opt.arch.skip: feat = torch.cat([feat,points_enc],dim=-1)
-            feat = layer(feat)
-            if li==len(self.mlp_feat)-1:
-                density = feat[...,0]
-                if opt.nerf.density_noise_reg and mode=="train":
-                    density += torch.randn_like(density)*opt.nerf.density_noise_reg
-                density_activ = getattr(torch_F,opt.arch.density_activ) # relu_,abs_,sigmoid_,exp_....
-                density = density_activ(density)
-                feat = feat[...,1:]
-            feat = torch_F.relu(feat)
+        if "use_tcnn" in opt.arch and opt.arch.use_tcnn:
+            feat = self.mlp_feat(feat)
+            density = feat[...,0]
+        elif "use_tcnn" not in opt.arch or not opt.arch.use_tcnn:
+            for li,layer in enumerate(self.mlp_feat):
+                if li in opt.arch.skip: feat = torch.cat([feat,points_enc],dim=-1)
+                feat = layer(feat)
+                if li==len(self.mlp_feat)-1:
+                    density = feat[...,0]
+        if opt.nerf.density_noise_reg and mode=="train":
+            density += torch.randn_like(density)*opt.nerf.density_noise_reg
+        density_activ = getattr(torch_F,opt.arch.density_activ) # relu_,abs_,sigmoid_,exp_....
+        density = density_activ(density)
+        feat = feat[...,1:]
+        feat = torch_F.relu(feat)
         # predict RGB values
         if opt.nerf.view_dep:
             assert(ray_unit is not None)
